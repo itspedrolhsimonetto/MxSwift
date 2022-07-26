@@ -1,0 +1,111 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
+
+package com.prowidesoftware.swift.samples;
+
+import com.prowidesoftware.swift.model.AbstractMessage;
+import com.prowidesoftware.swift.model.MessageMetadataStrategy;
+import com.prowidesoftware.swift.model.Money;
+import com.prowidesoftware.swift.model.MxNode;
+
+import java.math.BigDecimal;
+import java.util.Calendar;
+import java.util.Optional;
+
+import com.prowidesoftware.swift.model.mx.AbstractMX;
+import org.apache.commons.lang3.StringUtils;
+
+
+public class MensageriaInternacionalStrategy implements MessageMetadataStrategy {
+
+    public MensageriaInternacionalStrategy() {
+
+    }
+
+    public Optional<String> reference(AbstractMessage message) {
+        if (message.isMX()) {
+            AbstractMX mx = (AbstractMX)message;
+            if (mx.getAppHdr() != null) {
+                String reference = mx.getAppHdr().reference();
+                if (StringUtils.isNotBlank(reference)) {
+                    return Optional.of(reference);
+                }
+            }
+
+            MxNode document = MxNode.parse(mx.document());
+            MxNode groupHeader = document != null ? document.findFirstByName("GrpHdr") : null;
+            if (groupHeader != null) {
+                MxNode reference = groupHeader.findFirst("./MsgId");
+                if (reference != null && StringUtils.isNotBlank(reference.getValue())) {
+                    return Optional.of(reference.getValue());
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    public Optional<Money> amount(AbstractMessage message) {
+        if (message.isMX()) {
+            AbstractMX mx = (AbstractMX) message;
+
+            MxNode document = MxNode.parse(mx.document());
+            MxNode groupHeader = document != null ? document.findFirstByName("GrpHdr") : null;
+            MxNode amountAndCurrencyGroupHeader = groupHeader != null ? groupHeader.findFirst("./TtlIntrBkSttlmAmt") : null;
+
+            if (amountAndCurrencyGroupHeader != null) {
+                    var currency = amountAndCurrencyGroupHeader.getAttribute("Ccy");
+                    var value = amountAndCurrencyGroupHeader.getValue();
+
+                    if (StringUtils.isNotBlank(currency) && StringUtils.isNotBlank(value)) {
+                        Money money = new Money(currency, new BigDecimal(value));
+
+                        return Optional.of(money);
+                    }
+            }
+
+            MxNode notification = document != null ? document.findFirstByName("Ntfctn") : null;
+            MxNode entry = notification != null ? notification.findFirstByName("Ntfctn") : null;
+            MxNode amountAndCurrencyEntry = entry != null ? entry.findFirstByName("Amt") : null;
+
+            if (amountAndCurrencyEntry != null) {
+                    var currency = amountAndCurrencyEntry.getAttribute("Ccy");
+                    var value = amountAndCurrencyEntry.getValue();
+
+                    if (StringUtils.isNotBlank(currency) && StringUtils.isNotBlank(value)) {
+                        Money money = new Money(currency, new BigDecimal(value));
+
+                        return Optional.of(money);
+                    }
+            }
+
+            MxNode modfyRsvatn = document != null ? document.findFirstByName("ModfyRsvatn") : null;
+            MxNode newRsvatnValSet = modfyRsvatn != null ? modfyRsvatn.findFirstByName("NewRsvatnValSet") : null;
+            MxNode amountNewRsvatnValSet = newRsvatnValSet != null ? newRsvatnValSet.findFirstByName("Amt") : null;
+            MxNode amountAndCurrencyNewRsvatnId = amountNewRsvatnValSet != null ? amountNewRsvatnValSet.findFirstByName("AmtWthtCcy") : null;
+
+            if (amountAndCurrencyNewRsvatnId != null) {
+                var currency = amountAndCurrencyNewRsvatnId.getAttribute("Ccy");
+                var value = amountAndCurrencyNewRsvatnId.getValue();
+
+                if (StringUtils.isNotBlank(currency) && StringUtils.isNotBlank(value)) {
+                    Money money = new Money(currency, new BigDecimal(value));
+
+                    return Optional.of(money);
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    public Optional<Calendar> valueDate(AbstractMessage message) {
+        return Optional.empty();
+    }
+
+    public Optional<Calendar> tradeDate(AbstractMessage message) {
+        return Optional.empty();
+    }
+}
